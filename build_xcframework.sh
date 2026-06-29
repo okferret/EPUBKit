@@ -265,6 +265,7 @@ build_platform_async() {
         -configuration Release \
         BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
         MACH_O_TYPE=staticlib \
+        SWIFT_PACKAGE_NAME=EPUBKit \
         > "$log_file" 2>&1
     local exit_code=$?
 
