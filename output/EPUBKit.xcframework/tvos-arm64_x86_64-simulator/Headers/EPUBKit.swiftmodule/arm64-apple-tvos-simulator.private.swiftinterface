@@ -1,0 +1,169 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.3.3 effective-5.10 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)
+// swift-module-flags: -target arm64-apple-tvos12.0-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -O -enable-experimental-feature DebugDescriptionMacro -module-name EPUBKit -package-name build_xcframework_tmp
+// swift-module-flags-ignorable:  -formal-cxx-interoperability-mode=off -interface-compiler-version 6.3.3
+import Foundation
+import Swift
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+public struct EPUBCreator {
+  public var name: Swift.String?
+  public var role: Swift.String?
+  public var fileAs: Swift.String?
+}
+public struct EPUBDocument {
+  public let directory: Foundation.URL
+  public let contentDirectory: Foundation.URL
+  public let metadata: EPUBKit.EPUBMetadata
+  public let manifest: EPUBKit.EPUBManifest
+  public let spine: EPUBKit.EPUBSpine
+  public let tableOfContents: EPUBKit.EPUBTableOfContents
+  public init?(url: Foundation.URL)
+}
+extension EPUBKit.EPUBDocument {
+  public var title: Swift.String? {
+    get
+  }
+  public var author: Swift.String? {
+    get
+  }
+  public var publisher: Swift.String? {
+    get
+  }
+  public var cover: Foundation.URL? {
+    get
+  }
+}
+public struct EPUBManifest {
+  public var id: Swift.String?
+  public var items: [Swift.String : EPUBKit.EPUBManifestItem]
+}
+public struct EPUBManifestItem {
+  public var id: Swift.String
+  public var path: Swift.String
+  public var mediaType: EPUBKit.EPUBMediaType
+  public var property: Swift.String?
+}
+public enum EPUBMediaType : Swift.String {
+  case gif
+  case jpeg
+  case png
+  case svg
+  case xHTML
+  case opf2
+  case rfc4329
+  case openType
+  case woff
+  case woff2
+  case mediaOverlays
+  case pls
+  case mp3
+  case mp4
+  case css
+  case unknown
+  public init?(rawValue: Swift.String)
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public struct EPUBMetadata {
+  public var contributor: EPUBKit.EPUBCreator?
+  public var coverage: Swift.String?
+  public var creator: EPUBKit.EPUBCreator?
+  public var date: Swift.String?
+  public var description: Swift.String?
+  public var format: Swift.String?
+  public var identifier: Swift.String?
+  public var language: Swift.String?
+  public var publisher: Swift.String?
+  public var relation: Swift.String?
+  public var rights: Swift.String?
+  public var source: Swift.String?
+  public var subject: Swift.String?
+  public var title: Swift.String?
+  public var type: Swift.String?
+  public var coverId: Swift.String?
+}
+public struct EPUBSpine {
+  public var id: Swift.String?
+  public var toc: Swift.String?
+  public var pageProgressionDirection: EPUBKit.EPUBPageProgressionDirection?
+  public var items: [EPUBKit.EPUBSpineItem]
+}
+public enum EPUBPageProgressionDirection : Swift.String {
+  case leftToRight
+  case rightToLeft
+  public init?(rawValue: Swift.String)
+  public typealias RawValue = Swift.String
+  public var rawValue: Swift.String {
+    get
+  }
+}
+public struct EPUBSpineItem {
+  public var id: Swift.String?
+  public var idref: Swift.String
+  public var linear: Swift.Bool
+}
+public struct EPUBTableOfContents {
+  public var label: Swift.String
+  public var id: Swift.String
+  public var item: Swift.String?
+  public var subTable: [EPUBKit.EPUBTableOfContents]?
+}
+final public class EPUBParser : EPUBKit.EPUBParserProtocol {
+  weak final public var delegate: (any EPUBKit.EPUBParserDelegate)?
+  public init()
+  final public func parse(documentAt path: Foundation.URL) throws -> EPUBKit.EPUBDocument
+  @objc deinit
+}
+public enum EPUBParserError {
+  case unzipFailed(reason: any Swift.Error)
+  case containerMissing
+  case contentPathMissing
+  case tableOfContentsMissing
+}
+extension EPUBKit.EPUBParserError : Foundation.LocalizedError {
+  public var errorDescription: Swift.String? {
+    get
+  }
+  public var failureReason: Swift.String? {
+    get
+  }
+  public var recoverySuggestion: Swift.String? {
+    get
+  }
+}
+public protocol EPUBParserDelegate : AnyObject {
+  func parser(_ parser: EPUBKit.EPUBParser, didBeginParsingDocumentAt path: Foundation.URL)
+  func parser(_ parser: EPUBKit.EPUBParser, didUnzipArchiveTo directory: Foundation.URL)
+  func parser(_ parser: EPUBKit.EPUBParser, didLocateContentAt directory: Foundation.URL)
+  func parser(_ parser: EPUBKit.EPUBParser, didFinishParsing metadata: EPUBKit.EPUBMetadata)
+  func parser(_ parser: EPUBKit.EPUBParser, didFinishParsing manifest: EPUBKit.EPUBManifest)
+  func parser(_ parser: EPUBKit.EPUBParser, didFinishParsing spine: EPUBKit.EPUBSpine)
+  func parser(_ parser: EPUBKit.EPUBParser, didFinishParsing tableOfContents: EPUBKit.EPUBTableOfContents)
+  func parser(_ parser: EPUBKit.EPUBParser, didFinishParsingDocumentAt path: Foundation.URL)
+  func parser(_ parser: EPUBKit.EPUBParser, didFailParsingDocumentAt path: Foundation.URL, with error: any Swift.Error)
+}
+extension EPUBKit.EPUBParserDelegate {
+  public func parser(_ parser: EPUBKit.EPUBParser, didBeginParsingDocumentAt path: Foundation.URL)
+  public func parser(_ parser: EPUBKit.EPUBParser, didUnzipArchiveTo directory: Foundation.URL)
+  public func parser(_ parser: EPUBKit.EPUBParser, didLocateContentAt directory: Foundation.URL)
+  public func parser(_ parser: EPUBKit.EPUBParser, didFinishParsing metadata: EPUBKit.EPUBMetadata)
+  public func parser(_ parser: EPUBKit.EPUBParser, didFinishParsing manifest: EPUBKit.EPUBManifest)
+  public func parser(_ parser: EPUBKit.EPUBParser, didFinishParsing spine: EPUBKit.EPUBSpine)
+  public func parser(_ parser: EPUBKit.EPUBParser, didFinishParsing tableOfContents: EPUBKit.EPUBTableOfContents)
+  public func parser(_ parser: EPUBKit.EPUBParser, didFinishParsingDocumentAt path: Foundation.URL)
+  public func parser(_ parser: EPUBKit.EPUBParser, didFailParsingDocumentAt path: Foundation.URL, with error: any Swift.Error)
+}
+public protocol EPUBParserProtocol {
+  var delegate: (any EPUBKit.EPUBParserDelegate)? { get set }
+  func parse(documentAt path: Foundation.URL) throws -> EPUBKit.EPUBDocument
+}
+extension EPUBKit.EPUBMediaType : Swift.Equatable {}
+extension EPUBKit.EPUBMediaType : Swift.Hashable {}
+extension EPUBKit.EPUBMediaType : Swift.RawRepresentable {}
+extension EPUBKit.EPUBPageProgressionDirection : Swift.Equatable {}
+extension EPUBKit.EPUBPageProgressionDirection : Swift.Hashable {}
+extension EPUBKit.EPUBPageProgressionDirection : Swift.RawRepresentable {}

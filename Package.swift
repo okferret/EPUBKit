@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:5.9
 
 import PackageDescription
 
@@ -15,26 +15,10 @@ let package = Package(
         .library(name: "EPUBKit", targets: ["EPUBKit"]),
     ],
     
-    dependencies: [
-        .package(
-            url: "https://github.com/tadija/AEXML",
-            from: "4.7.0"
-        ),
-        .package(
-            url: "https://github.com/marmelroy/Zip",
-            from: "2.1.2"
-        )
-    ],
-    
     targets: [
-        .target(
+        .binaryTarget(
             name: "EPUBKit",
-            dependencies: ["AEXML", "Zip"]
-        ),
-        .testTarget(
-            name: "EPUBKitTests",
-            dependencies: ["EPUBKit"],
-            resources: [.copy("Resources")]
+            path: "output/EPUBKit.xcframework"
         )
     ]
 )

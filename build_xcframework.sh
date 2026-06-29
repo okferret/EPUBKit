@@ -412,7 +412,10 @@ echo "  Size: $(du -sh "$XCFRAMEWORK_OUTPUT" | cut -f1)"
 echo ""
 
 # -------------------------------------------------------
-# Step 12: 清理临时文件（取消注释以启用）
+# Step 12: 清理临时文件，只保留 EPUBKit.xcframework
 # -------------------------------------------------------
-# rm -rf "$BUILD_DIR"
-# echo "[Step 12] Cleaned up temporary files."
+echo ""
+echo "[Step 12] Cleaning up temporary files..."
+rm -rf "$BUILD_DIR"
+echo "  Removed: $BUILD_DIR"
+echo "  Done."
