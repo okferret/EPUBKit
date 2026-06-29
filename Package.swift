@@ -15,10 +15,24 @@ let package = Package(
         .library(name: "EPUBKit", targets: ["EPUBKit"]),
     ],
     
+    dependencies: [
+        .package(url: "https://github.com/tadija/AEXML.git", from: "4.0.0"),
+        .package(url: "https://github.com/marmelroy/Zip.git", from: "2.0.0"),
+    ],
+    
     targets: [
-        .binaryTarget(
+        .target(
             name: "EPUBKit",
-            path: "output/EPUBKit.xcframework"
+            dependencies: ["AEXML", "Zip"],
+            path: "Sources/EPUBKit"
+        ),
+        .testTarget(
+            name: "EPUBKitTests",
+            dependencies: ["EPUBKit"],
+            path: "Tests/EPUBKitTests",
+            resources: [
+                .copy("Resources")
+            ]
         )
     ]
 )

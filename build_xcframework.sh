@@ -265,6 +265,7 @@ build_platform_async() {
         -configuration Release \
         BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
         MACH_O_TYPE=staticlib \
+        SWIFT_PACKAGE_NAME=EPUBKit \
         > "$log_file" 2>&1
     local exit_code=$?
 
@@ -350,14 +351,14 @@ for platform_info in "${PLATFORMS[@]}"; do
         "$products_dir/Minizip.o" \
         -o "$lib_dir/EPUBKit.a"
 
-    # 复制 swiftmodule 文件到专用的 headers 目录
-    # （-headers 目录的内容会被 xcodebuild -create-xcframework 复制到 xcframework 的 Headers/ 中）
+    # 复制 swiftmodule 文件到库文件同级目录（不放在 Headers/ 子目录下）
+    # Xcode 要求 .swiftmodule 目录与 .a 文件同级，才能正确识别 Swift 模块
     if [ -d "$products_dir/EPUBKit.swiftmodule" ]; then
-        headers_dir="$lib_dir/Headers"
-        mkdir -p "$headers_dir/EPUBKit.swiftmodule"
+        swiftmodule_dir="$lib_dir/EPUBKit.swiftmodule"
+        mkdir -p "$swiftmodule_dir"
         # 只复制文件，不复制子目录（Project/ 目录包含私有信息）
         find "$products_dir/EPUBKit.swiftmodule" -maxdepth 1 -type f | while read f; do
-            cp "$f" "$headers_dir/EPUBKit.swiftmodule/"
+            cp "$f" "$swiftmodule_dir/"
         done
     fi
 
@@ -365,40 +366,142 @@ for platform_info in "${PLATFORMS[@]}"; do
 done
 
 # -------------------------------------------------------
-# Step 11: 创建 xcframework
+# -------------------------------------------------------
+# Step 11: 手动组装 xcframework（正确放置 swiftmodule）
 # -------------------------------------------------------
 echo ""
-echo "[Step 11] Creating xcframework..."
+echo "[Step 11] Assembling xcframework with correct swiftmodule layout..."
 
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
-XCFRAMEWORK_ARGS=""
+# 用函数替代关联数组（兼容 bash 3.2）
+get_platform_id() {
+    case "$1" in
+        iOS_device)      echo "ios-arm64" ;;
+        iOS_Simulator)   echo "ios-arm64_x86_64-simulator" ;;
+        macOS)           echo "macos-arm64_x86_64" ;;
+        tvOS_device)     echo "tvos-arm64" ;;
+        tvOS_Simulator)  echo "tvos-arm64_x86_64-simulator" ;;
+    esac
+}
+
+get_platform_archs() {
+    case "$1" in
+        iOS_device)      echo "arm64" ;;
+        iOS_Simulator)   echo "arm64 x86_64" ;;
+        macOS)           echo "arm64 x86_64" ;;
+        tvOS_device)     echo "arm64" ;;
+        tvOS_Simulator)  echo "arm64 x86_64" ;;
+    esac
+}
+
+get_platform_name() {
+    case "$1" in
+        iOS_device)      echo "ios" ;;
+        iOS_Simulator)   echo "ios" ;;
+        macOS)           echo "macos" ;;
+        tvOS_device)     echo "tvos" ;;
+        tvOS_Simulator)  echo "tvos" ;;
+    esac
+}
+
+get_platform_variant() {
+    case "$1" in
+        iOS_Simulator)   echo "simulator" ;;
+        tvOS_Simulator)  echo "simulator" ;;
+        *)               echo "" ;;
+    esac
+}
+
+ADDED_PLATFORMS=()
+
 for platform_info in "${PLATFORMS[@]}"; do
     IFS='|' read -r name destination dd_path products_subdir sdk_key <<< "$platform_info"
     lib_dir="$STATIC_LIBS_DIR/$name"
     lib_file="$lib_dir/EPUBKit.a"
-    headers_dir="$lib_dir/Headers"
+    [ -f "$lib_file" ] || continue
 
-    if [ -f "$lib_file" ]; then
-        XCFRAMEWORK_ARGS="$XCFRAMEWORK_ARGS -library $lib_file"
-        # 如果有 headers 目录（包含 swiftmodule），添加 -headers 参数
-        if [ -d "$headers_dir" ]; then
-            XCFRAMEWORK_ARGS="$XCFRAMEWORK_ARGS -headers $headers_dir"
-        fi
-        echo "  Adding: $name"
+    platform_id="$(get_platform_id "$name")"
+    xcfw_platform_dir="$XCFRAMEWORK_OUTPUT/$platform_id"
+    mkdir -p "$xcfw_platform_dir"
+
+    # 复制静态库
+    cp "$lib_file" "$xcfw_platform_dir/EPUBKit.a"
+
+    # 复制 swiftmodule（直接放在平台目录根层级）
+    if [ -d "$lib_dir/EPUBKit.swiftmodule" ]; then
+        cp -r "$lib_dir/EPUBKit.swiftmodule" "$xcfw_platform_dir/EPUBKit.swiftmodule"
     fi
+
+    ADDED_PLATFORMS+=("$name")
+    echo "  Added: $platform_id"
 done
 
-if [ -z "$XCFRAMEWORK_ARGS" ]; then
-    echo "  ERROR: No libraries found!"
-    exit 1
-fi
+# 生成 Info.plist
+PLIST_ENTRIES=""
+for name in "${ADDED_PLATFORMS[@]}"; do
+    platform_id="$(get_platform_id "$name")"
+    archs="$(get_platform_archs "$name")"
+    platform_name="$(get_platform_name "$name")"
+    variant="$(get_platform_variant "$name")"
 
-xcodebuild -create-xcframework \
-    $XCFRAMEWORK_ARGS \
-    -output "$XCFRAMEWORK_OUTPUT"
+    # 构建架构数组
+    arch_entries=""
+    for arch in $archs; do
+        arch_entries="${arch_entries}
+			<string>${arch}</string>"
+    done
 
+    # 构建变体条目（可选）
+    variant_entry=""
+    if [ -n "$variant" ]; then
+        variant_entry="
+   <key>SupportedPlatformVariant</key>
+   <string>${variant}</string>"
+    fi
+
+    # 检查是否有 swiftmodule
+    swiftmodule_entry=""
+    if [ -d "$XCFRAMEWORK_OUTPUT/$platform_id/EPUBKit.swiftmodule" ]; then
+        swiftmodule_entry="
+   <key>SwiftModulesPath</key>
+   <string>EPUBKit.swiftmodule</string>"
+    fi
+
+    PLIST_ENTRIES="${PLIST_ENTRIES}
+  <dict>
+   <key>BinaryPath</key>
+   <string>EPUBKit.a</string>
+   <key>LibraryIdentifier</key>
+   <string>${platform_id}</string>
+   <key>LibraryPath</key>
+   <string>EPUBKit.a</string>
+   <key>SupportedArchitectures</key>
+   <array>${arch_entries}
+   </array>
+   <key>SupportedPlatform</key>
+   <string>${platform_name}</string>${variant_entry}${swiftmodule_entry}
+  </dict>"
+done
+
+cat > "$XCFRAMEWORK_OUTPUT/Info.plist" << PLISTEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AvailableLibraries</key>
+	<array>${PLIST_ENTRIES}
+	</array>
+	<key>CFBundlePackageType</key>
+	<string>XFWK</string>
+	<key>XCFrameworkFormatVersion</key>
+	<string>1.0</string>
+</dict>
+</plist>
+PLISTEOF
+
+echo "  Info.plist generated."
 echo ""
 echo "============================================================"
 echo "  SUCCESS!"
